@@ -539,6 +539,13 @@ The URL for the up link of exported HTML pages (org-html-link-up).
 
 
 ***  js support
+
+ #+begin_example
+ #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://fniessen.github.io/org-html-themes/styles/readtheorg/css/readtheorg.css"/>
+
+#+HTML_HEAD: <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    #+end_example
+
 已经有一个专门为org 写的js为 叫 https://orgmode.org/worg/code/org-info-js/.
 要使用它只需要将下面的设置加入到org文档中。
 #+begin_example
