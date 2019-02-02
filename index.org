@@ -1,0 +1,3 @@
+* emacs
+** org mode
+[[file:org/emacs/org/org-mode.org][manual]]
