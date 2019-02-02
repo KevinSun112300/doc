@@ -1,3 +1,4 @@
+#+SETUPFILE: https://fniessen.github.io/org-html-themes/setup/theme-readtheorg.setup
 * emacs
 ** org mode
 [[file:org/emacs/org/org-mode.org][manual]]
