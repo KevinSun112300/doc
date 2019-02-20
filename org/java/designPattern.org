@@ -8,7 +8,7 @@
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://fniessen.github.io/org-html-themes/styles/readtheorg/css/htmlize.css"/>
 #+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://fniessen.github.io/org-html-themes/styles/readtheorg/css/readtheorg.css"/>
 
-#+HTML_HEAD: <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+#+HTML_HEAD: <script src="https://cdn.staticfile.org/jquery/2.1.3/jquery.min.js"></script>
 #+HTML_HEAD: <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
 #+HTML_HEAD: <script type="text/javascript" src="https://fniessen.github.io/org-html-themes/styles/lib/js/jquery.stickytableheaders.min.js"></script>
 #+HTML_HEAD: <script type="text/javascript" src="https://fniessen.github.io/org-html-themes/styles/readtheorg/js/readtheorg.js"></script>
@@ -96,6 +96,7 @@ Car "1" o-- "4" 轮胎
 公司 *-- 研发部
 
 #+end_example
+
 
 
 
@@ -314,6 +315,145 @@ Car <|-- Engine2200Jeep
 - expensive to create
 - in need of being secured.
 
+** Flyweight Pattern 享元模式
+面向对象编程让程序员的生活变得有趣而简单， 编程成了对现实的model化。
+但创建和保存太多的对象，会占用系统过多的内存资源。所以好的程序员要学习控制对象的创建。
+如果对象相似，比如大多数属性值是一样的，只有少量属性有变化， 就要想办法共享。
+
+有这样一个平台，用户可以选择编辑语言，和运行平台，然后这个平台替你运行并返回结果。
+
+#+begin_src java
+public class Code {
+  private String code;
+
+  public String getCode() {
+    return code;
+  }
+  public void setCode(String code) {
+    this.code = code;
+  }
+}
+
+#+end_src
+Code是一个轻量型对象。只是代表一段代码。
+#+begin_src java
+public interface Platform {
+  public void execute(Code code);
+}
+public class JavaPlatform implements Platform {
+  public JavaPlatform(){
+    System.out.println("JavaPlatform object created");
+  }
+  @Override
+  public void execute(Code code) {
+    System.out.println("Compiling and executing Java code.");
+  }
+}
+#+end_src
+
+platform系统的对象是重型对象，建立环境还需要很多对象。
+
+#+begin_src java
+Platform platform = new JavaPlatform();
+platform.execute(code);
+
+#+end_src
+
+当有2K的用户在线的时候，就要创建2k的Code对象，和2k的Platform对象。
+
+#+begin_quote
+A flyweight is a shared object that can be used in multiple contexts simultaneously.
+#+end_quote
+
+这所以能够实现y共享，是因为将享元的属性状态分成了两类
+- intrinsic state 内在状态 ， 在所有环境下都一样的状态属性
+- extrinsic state 外在状态， 环境不同，属性状态不同
+intrinsic state 是可以被共享的，extrinsic 是不能共享的。
+
+享元模式的UML图是这样的
+
+
+
+#+begin_src plantuml :file flyweight.png
+interface Flyweight{
+operation(extrinsicState)
+}
+class ConcreteFlyweight{
+operation(extrinsicState)
+}
+
+FlyweightFactory o-- Flyweight
+Flyweight <|.. ConcreteFlyweight
+
+FlyweightFactory <-- Client
+ConcreteFlyweight <-- Client
+
+
+#+end_src
+
+#+RESULTS:
+[[file:flyweight.png]]
+
+
+FlyweightFactory 是共享对象池，使用map 存储共享对象。 共享对象，通过 向操作 函数传入外在状态属性值来使用对象。
+
+针对我们上面使用的场景， platform 没有内在对象，只有一个外在对象，code, 通过 excute函数可以传入code.
+我们来看一下factory的实现
+#+begin_src java
+public final class PlatformFactory {
+  private static Map<String, Platform> map = new HashMap<>();
+  private PlatformFactory(){
+    throw new AssertionError("Cannot instantiate the class");
+  }
+  public static synchronized Platform getPlatformInstance(String platformType){
+    Platform platform = map.get(platformType);
+    if(platform==null){
+      switch(platformType){
+      case "C" : platform = new CPlatform();
+        break;
+      case "CPP" : platform = new CPPPlatform();
+        break;
+      case "JAVA" : platform = new JavaPlatform();
+        break;
+      case "RUBY" : platform = new RubyPlatform();
+        break;
+      }
+      map.put(platformType, platform);
+    }
+    return platform;
+  }
+}
+#+end_src
+
+注意Map本身是不同步的，所以 getPlatforminstance就一定要同步，否则影响对象创建。
+使用方法如下。
+
+#+begin_src java
+public class TestFlyweight {
+  public static void main(String[] args) {
+    Code code = new Code();
+    code.setCode("C Code...");
+    Platform platform = PlatformFactory.getPlatformInstance("C");
+    platform.execute(code);
+    System.out.println("*************************");
+    code = new Code();
+    code.setCode("C Code2...");
+    platform = PlatformFactory.getPlatformInstance("C");
+    platform.execute(code);
+    System.out.println("*************************");
+    code = new Code();
+    code.setCode("JAVA Code...");
+    platform = PlatformFactory.getPlatformInstance("JAVA");
+    platform.execute(code);
+
+    System.out.println("*************************");
+  }}
+
+
+#+end_src
+
+对就UML图， Platform 就相当于Flyweight接口。 JavaPlatform相当于ConcreteFlyweight.
+而excute方法就是operation方法 。
 
 * Creational Patterns
 
@@ -362,6 +502,10 @@ public class Singleton
   }
 }
 #+end_src
+
+
+
+
 
 
 
