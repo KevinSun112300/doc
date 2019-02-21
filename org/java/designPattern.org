@@ -508,6 +508,420 @@ public class Singleton
 
 
 
+** Builder Pattern
+
+回想一下之前写C++程序的时候， 一个类，有很多成员变量，这些成员变量，有的是字符串，有的整型，有的是其它对象。这些成员变量有的是这个类实例化必要的，有的是可选的。
+于是，这个类的构造函数，就搞得很复杂， 需要有很多参数的构造函数，构造流程也很复杂。 Bulder 模式就是为了解决这个问题，它有两种形式。
+
+先看第一种，对于上面所述的问题，以前一般是通过建立Telescoping（可伸缩）的构造函数序列。 比如有一个表单，前四个字段是必须的，
+其它都是可选的。
+#+begin_src java
+public class Form {
+
+
+  private String firstName;
+  private String lastName;
+  private String userName;
+  private String password;
+  private String address;
+  private Date dob;
+  private String email;
+  private String backupEmail;
+  private String spouseName;
+  private String city;
+
+  private String state;
+  private String country;
+  private String language;
+  private String passwordHint;
+  private String secuirtyQuestion;
+  private String securityAnswer;
+}
+#+end_src
+它的构造函数就可以这么写,
+#+begin_src java
+public Form(String firstName,String lastName){
+  this(firstName,lastName,null,null);
+}
+public Form(String firstName,String lastName,String userName,String password){
+  this(firstName,lastName,userName,password,null,null);
+}
+public Form(String firstName,String lastName,String userName,String password,String address ←-
+            ,Date dob){
+  this(firstName,lastName,userName,password,address,dob,null,null);
+}
+public Form(String firstName,String lastName,String userName,String password,String address ←-
+            ,Date dob,String email,String backupEmail){
+
+}
+#+end_src
+这就叫telesoping. 这个存在的问题是什么 ， 是client在用这个类的时间，可读性着， client还要清楚每一个参数的意思、顺序、类型，
+一旦出了问题，最差的情况是顺序错了，但类型一样，编译器没报错，运行起来才出问题。
+
+#+begin_src java
+public class Form {
+  private String firstName;
+  private String lastName;
+  private String userName;
+  private String password;
+  private String address;
+  private Date dob;
+  private String email;
+  private String backupEmail;
+  private String spouseName;
+  private String city;
+
+  private String state;
+  private String country;
+  private String language;
+  private String passwordHint;
+  private String secuirtyQuestion;
+  private String securityAnswer;
+  public static class FormBuilder {
+    private String firstName;
+    private String lastName;
+    private String userName;
+    private String password;
+    private String address;
+    private Date dob;
+    private String email;
+    private String backupEmail;
+    private String spouseName;
+    private String city;
+
+    private String state;
+    private String country;
+    private String language;
+    private String passwordHint;
+    private String secuirtyQuestion;
+    private String securityAnswer;
+    public FormBuilder(String firstName, String lastName, String userName,
+                       String password){
+      this.firstName = firstName;
+      this.lastName = lastName;
+      this.userName = userName;
+      this.password = password;
+    }
+    public FormBuilder address(String address){
+      this.address = address;
+      return this;
+    }
+    public FormBuilder dob(Date dob){
+      this.dob = dob;
+      return this;
+    }
+    public FormBuilder email(String email){
+      this.email = email;
+      return this;
+    }
+    public FormBuilder backupEmail(String backupEmail){
+      this.backupEmail = backupEmail;
+      return this;
+    }
+    public FormBuilder spouseName(String spouseName){
+      this.spouseName = spouseName;
+      return this;
+    }
+    public FormBuilder city(String city){
+      this.city = city;
+      return this;
+    }
+    public FormBuilder state(String state){
+      this.state = state;
+      return this;
+    }
+    public FormBuilder country(String country){
+      this.country = country;
+      return this;
+    }
+    public FormBuilder language(String language){
+      this.language = language;
+      return this;
+    }
+    public FormBuilder passwordHint(String passwordHint){
+      this.passwordHint = passwordHint;
+      return this;
+    }
+    public FormBuilder securityQuestion(String securityQuestion){
+      this.securityQuestion = securityQuestion;
+      return this;
+    }
+    public FormBuilder securityAnswer(String securityAnswer){
+      this.securityAnswer = securityAnswer;
+      return this;
+    }
+    public Form build(){
+      return new Form(this);
+    }
+  }
+  private Form(FormBuilder formBuilder){
+    this.firstName = formBuilder.firstName;
+    this.lastName = formBuilder.lastName;
+    this.userName = formBuilder.userName;
+    this.password = formBuilder.password;
+    this.address = formBuilder.address;
+    this.dob = formBuilder.dob;
+    this.email = formBuilder.email;
+    this.backupEmail = formBuilder.backupEmail;
+    this.spouseName = formBuilder.spouseName;
+    this.city = formBuilder.city;
+    this.state = formBuilder.state;
+    this.country = formBuilder.country;
+    this.language = formBuilder.language;
+    this.passwordHint = formBuilder.passwordHint;
+    this.securityQuestion = formBuilder.securityQuestion;
+    this.securityAnswer = formBuilder.securityAnswer;
+  }
+  @Override
+  public String toString(){
+    StringBuilder sb = new StringBuilder();
+    sb.append(" First Name: ");
+    sb.append(firstName);
+    sb.append("\\n Last Name: ");
+    sb.append(lastName);
+    sb.append("\\n User Name: ");
+    sb.append(userName);
+    sb.append("\\n Password: ");
+    sb.append(password);
+    if(this.address!=null){
+      sb.append("\\n Address: ");
+      sb.append(address);
+    }
+    if(this.dob!=null){
+      sb.append("\\n DOB: ");
+      sb.append(dob);
+    }
+    if(this.email!=null){
+      sb.append("\\n Email: ");
+      sb.append(email);
+    }
+    if(this.backupEmail!=null){
+      sb.append("\\n Backup Email: ");
+      sb.append(backupEmail);
+    }
+    if(this.spouseName!=null){
+      sb.append("\\n Spouse Name: ");
+      sb.append(spouseName);
+    }
+    if(this.city!=null){
+      sb.append("\\n City: ");
+      sb.append(city);
+    }
+    if(this.state!=null){
+      sb.append("\\n State: ");
+      sb.append(state);
+    }
+    if(this.country!=null){
+      sb.append("\\n Country: ");
+      sb.append(country);
+    }
+    if(this.language!=null){
+      sb.append("\\n Language: ");
+      sb.append(language);
+    }
+    if(this.passwordHint!=null){
+      sb.append("\\n Password Hint: ");
+      sb.append(passwordHint);
+    }
+    if(this.securityQuestion!=null){
+      sb.append("\\n Security Question: ");
+      sb.append(securityQuestion);
+    }
+    if(this.securityAnswer!=null){
+      sb.append("\\n Security Answer: ");
+      sb.append(securityAnswer);
+    }
+    return sb.toString();
+  }
+  public static void main(String[] args) {
+    Form form = new Form.FormBuilder("Dave", "Carter", "DavCarter", "DAvCaEr123").passwordHint("MyName").city("NY").language("English").build();
+    System.out.println(form);
+  }
+}
+
+#+end_src
+
+这就是第一种构建模式， FormBuilder构造函数参数只是必要的四个，其它通过方法来设计，最后通过build()方法来构建对象。
+第一种形式适用于对象依赖很多很复杂的情景。
+
+第二种构建模式的形式，稍复杂一些，适用于构建步骤复杂，但能分得出几步的情况。
+比如说，需要为某个汽车渲染引擎提供汽车对象， 对象的构造步骤如下，buildBodyStyle()、buildPower()、buildEngine()、buildBreaks()
+buildSeats()、buildWindows()等等。 所以你可定义一个Bulder接口定义这些步骤。 对于具体的车比如轿车SedanCar和SportsCar实现
+具体Builder。 用户可以直接使用这些Builder，但更好的方法是提供一个Facade模式的对象，替用户实现构建细节。
+
+#+begin_src plantuml :file bulder.png
+class Direct{
+construct()
+}
+Interface Builder{
+buildStep()
+}
+class SimpleBuilder{
+buildStep()
+getResult()
+}
+
+Builder <|.. SimpleBuilder
+Direct o-- Builder
+
+
+
+#+end_src
+
+#+RESULTS:
+[[file:bulder.png]]
+
+
+Direct 就是facade模式，construct方法按顺序调用builder的每个buildStep
+
+#+begin_src java
+
+public class Car {
+
+  private String bodyStyle;
+  private String power;
+  private String engine;
+  private String breaks;
+  private String seats;
+  private String windows;
+  private String fuelType;
+  private String carType;
+  public Car (String carType){
+    this.carType = carType;
+  }
+  public String getBodyStyle() {
+    return bodyStyle;
+  }
+  public void setBodyStyle(String bodyStyle) {
+    this.bodyStyle = bodyStyle;
+  }
+  public String getPower() {
+    return power;
+  }
+  public void setPower(String power) {
+    this.power = power;
+  }
+  public String getEngine() {
+    return engine;
+  }
+  public void setEngine(String engine) {
+    this.engine = engine;
+  }
+  public String getBreaks() {
+    return breaks;
+  }
+  public void setBreaks(String breaks) {
+    this.breaks = breaks;
+  }
+  public String getSeats() {
+    return seats;
+  }
+  public void setSeats(String seats) {
+    this.seats = seats;
+  }
+  public String getWindows() {
+    return windows;
+  }
+  public void setWindows(String windows) {
+    this.windows = windows;
+  }
+  public String getFuelType() {
+    return fuelType;
+  }
+  @Override
+  public String toString(){
+    StringBuilder sb = new StringBuilder();
+    sb.append("--------------"+carType+"--------------------- \\n");
+    sb.append(" Body: ");
+    sb.append(bodyStyle);
+    ...
+      return sb.toString();
+  }
+}
+
+public interface CarBuilder {
+
+
+  public void buildBodyStyle();
+  public void buildPower();
+  public void buildEngine();
+  public void buildBreaks();
+  public void buildSeats();
+  public void buildWindows();
+  public void buildFuelType();
+  public Car getCar();
+}
+
+public class SedanCarBuilder implements CarBuilder{
+  private final Car car = new Car("SEDAN");
+  @Override
+  public void buildBodyStyle() {
+    car.setBodyStyle("External dimensions: overall length (inches): 202.9, " +
+                     "overall width (inches): 76.2, overall height (inches): ←-
+60.7, wheelbase (inches): 112.9," +
+                     " front track (inches): 65.3, rear track (inches): 65.5 and ←-
+curb to curb turning circle (feet): 39.5");
+  }
+  ...
+    @Override
+    public Car getCar(){
+      return car;
+    }
+}
+public class SportsCarBuilder implements CarBuilder{
+  private final Car car = new Car("SPORTS");
+  @Override
+  public void buildBodyStyle() {
+    car.setBodyStyle("External dimensions: overall length (inches): 192.3," +
+                     " overall width (inches): 75.5, overall height (inches): ←-
+54.2, wheelbase (inches): 112.3," +
+                     " front track (inches): 63.7, rear track (inches): 64.1 and ←-
+curb to curb turning circle (feet): 37.7");
+  }
+  ...
+    @Override
+    public Car getCar(){
+      return car;
+    }
+}
+public class CarDirector {
+  private CarBuilder carBuilder;
+  public CarDirector(CarBuilder carBuilder){
+    this.carBuilder = carBuilder;
+  }
+  public build(){
+    this.carBuilder.buildBodyStyle()
+    this.carBuilder.buildPower();
+    this.carBuilder.buildEngine();
+    this.carBuilder.buildBreaks();
+    this.carBuilder.buildSeats();
+    this.carBuilder.buildWindows();
+    this.carBuilder.buildFuelType();
+  }
+  @Override
+  public Car getCar(){
+    return this.carBuilder.car;
+  }
+
+}
+
+public class TestBuilderPattern {
+  public static void main(String[] args) {
+    CarBuilder carBuilder = new SedanCarBuilder();
+    CarDirector director = new CarDirector(carBuilder);
+    director.build();
+    Car car = carBuilder.getCar();
+    System.out.println(car);
+    carBuilder = new SportsCarBuilder();
+    director = new CarDirector(carBuilder);
+    director.build();
+    car = carBuilder.getCar();
+    System.out.println(car);
+  }
+}
+
+#+end_src
+
 
 * Behavioral Patterns
 
