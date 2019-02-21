@@ -16,6 +16,7 @@
 
 
 
+
 * intro
 本文以功能模块的形式介绍org-mode
 
@@ -136,7 +137,24 @@ The Org homepage[fn:1] now looks a lot better than it used to.
 
 
 * Table
-等我有时间了看，现在最要紧的是解决 有道云笔记没法插图的问题
+
+#+begin_example
+| Name  | Phone | Age |
+|-------+-------+-----|
+| Peter |  1234 |  17 |
+| Anna  |  4321 |  25 |
+
+#+end_example
+| Name  | Phone | Age |
+|-------+-------+-----|
+| Peter |  1234 |  17 |
+| Anna  |  4321 |  25 |
+
+org-table-* 有很多函数可以用。
+
+每次在表格中打回车，或者TAB切换单元格，都会自表格自动对齐。
+
+
 * Hyperlinks
 添加一个link, 是执行C-c C-l runs the command org-insert-link。
 它会让你选择协议，选择描述。 完成后，link就只显示描述，想要编辑link，光标放到上面，再运行C-c C-l就可以了。
@@ -709,5 +727,5 @@ x=\sqrt{b}                              % even tables, figures
 
 
 * ref
-1. org manual  https://orgmode.org/manual/index.htm
+1. org manual  https://orgmode.org/manual/index.html
 2. org babel https://orgmode.org/worg/org-contrib/babel/
