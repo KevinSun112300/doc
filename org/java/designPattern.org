@@ -922,6 +922,297 @@ public class TestBuilderPattern {
 
 #+end_src
 
+** Factory Method Pattern
+就是定义一个创建对象的接口，然后让子类去实现接口，去选择用使用哪个类去实例化， 工厂模式让类的实例化过程推迟到了子类。
+其目的是封装concrete具体类型的初始化过程。 工厂方法依据应用的上下文和其它影响因素，从类继承树上，选择合适的类，实例化，初始化后返回。
+这能避免client 去处理选择类的问题。
+#+begin_src plantuml :file factory.png
+interface Product{
+}
+class ConcreteProduct{
+}
+
+class Creator{
+operation()
+abstract factoryMethod()
+}
+
+class ConcreteCreator{
+factoryMethod()
+}
+
+Product <|.. ConcreteProduct
+Creator <|-- ConcreteCreator
+
+ConcreteProduct <.. ConcreteCreator
+
+#+end_src
+
+#+RESULTS:
+[[file:factory.png]]
+
+Product 这一侧就是类的继承树。  Creator 的factoryMethod是让子类覆盖的，来选择创建合适的Product。 Creator的operation()方法，是用来调用factoryMethod()创建出Product然后提供一个服务的。
+
+比如说，我们的产品是一套XML解析器，要依据不用的XML文件类型，提供不用的解析器
+#+begin_src java
+public interface XMLParser {
+  public String parse();
+}
+public class ErrorXMLParser implements XMLParser{
+  @Override
+  public String parse() {
+    System.out.println("Parsing error XML...");
+    return "Error XML Message";
+  }
+}
+public class FeedbackXML implements XMLParser{
+  @Override
+  public String parse() {
+    System.out.println("Parsing feedback XML...");
+    return "Feedback XML Message";
+  }
+}
+
+
+public class OrderXMLParser implements XMLParser{
+  @Override
+  public String parse() {
+    System.out.println("Parsing order XML...");
+    return "Order XML Message";
+  }
+}
+public class ResponseXMLParser implements XMLParser{
+  @Override
+  public String parse() {
+    System.out.println("Parsing response XML...");
+    return "Response XML Message";
+  }
+}
+#+end_src
+然后我们提供一个Creator类
+#+begin_src java
+public abstract class DisplayService {
+  public void display(){
+    XMLParser parser = getParser();
+    String msg = parser.parse();
+    System.out.println(msg);
+  }
+  protected abstract XMLParser getParser();
+
+}
+
+#+end_src
+
+这个工厂类，提供的工厂方法是getParse(),提供的服务是display();
+OK,接下来是各个ConcreteCreator的实现。
+#+begin_src java
+
+public class ErrorXMLDisplayService extends DisplayService{
+  @Override
+  public XMLParser getParser() {
+    return new ErrorXMLParser();
+  }
+}
+
+public class FeedbackXMLDisplayService extends DisplayService{
+  @Override
+  public XMLParser getParser() {
+    return new FeedbackXML();
+  }
+}
+
+public class OrderXMLDisplayService extends DisplayService{
+  @Override
+  public XMLParser getParser() {
+    return new OrderXMLParser();
+  }
+}
+
+public class ResponseXMLDisplayService extends DisplayService{
+  @Override
+  public XMLParser getParser() {
+    return new ResponseXMLParser();
+  }
+}
+#+end_src
+
+然后就是使用方法
+#+begin_src java
+public class TestFactoryMethodPattern {
+  public static void main(String[] args) {
+    DisplayService service = new FeedbackXMLDisplayService();
+    service.display();
+    service = new ErrorXMLDisplayService();
+    service.display();
+    service = new OrderXMLDisplayService();
+    service.display();
+    service = new ResponseXMLDisplayService();
+    service.display();
+  }
+}
+#+end_src
+
+什么情况下使用工厂模式
+- 一个class没办法预计到将要创建的w具体是哪一个类
+- 想让它的子类去指定创建哪个类
+- 一个类负责代理多个helper subclass, 你想本地集中管理
+
+
+** Abstract Factory Method Design Pattern抽象工厂模式
+是工厂模式的下一级，是工厂的工厂。
+
+为什么工厂还需要工厂呢？
+我们看到工厂模式, 是concreteFactory来继承Factory.  这就造成了所有的concreteFactory是平行的。 是不能分组的。
+
+比如XMLParser， 有ErrorXmlParser、MessageXmlParser等等。 假如这个时候， 允许由不同的厂商来定义parser了。 那就会有，ChromeErrorXmlParser
+AdobeMessageXmlParser等等， 同一个公司的Parser应该有一个factory来创建， 而所有factory的接口就是抽象factory.
+
+
+when a client object wants to create an instance of one of a suite of related，dependent
+classes without having to know which specific concrete class is to be instantiated.
+用于向系统中插入一组不同的对象来改变系统行为。
+
+#+begin_src plantuml :file abstractFactory.png
+interface Product
+
+Product <|.. ProductA
+
+Product <|.. ProductB
+
+interface AbstractFactory
+
+AbstractFactory <|.. FactoryA
+AbstractFactory <|.. FactoryB
+
+
+#+end_src
+
+#+RESULTS:
+[[file:abstractFactory.png]]
+
+其实工厂模式的主要用途就是为了对client屏蔽product关系树的复杂性。用户不必知道具体实例化的是哪一个produce，只需要知道如何使用factory就可以。
+
+product一侧
+#+begin_src java
+public interface XMLParser {
+  public String parse();
+}
+public class NYErrorXMLParser implements XMLParser{
+  @Override
+  public String parse() {
+    System.out.println("NY Parsing error XML...");
+    return "NY Error XML Message";
+  }
+}
+
+public class NYFeedbackXMLParser implements XMLParser{
+  @Override
+  public String parse() {
+    System.out.println("NY Parsing feedback XML...");
+    return "NY Feedback XML Message";
+  }
+}
+
+public class NYOrderXMLParser implements XMLParser{
+  @Override
+  public String parse() {
+    System.out.println("NY Parsing order XML...");
+    return "NY Order XML Message";
+  }
+}
+public class NYResponseXMLParser implements XMLParser{
+  @Override
+  public String parse() {
+    System.out.println("NY Parsing response XML...");
+    return "NY Response XML Message";
+  }
+}
+
+public class TWErrorXMLParser implements XMLParser{
+  @Override
+  public String parse() {
+    System.out.println("TW Parsing error XML...");
+    return "TW Error XML Message";
+  }
+}
+public class TWFeedbackXMLParser implements XMLParser{
+  @Override
+  public String parse() {
+    System.out.println("TW Parsing feedback XML...");
+    return "TW Feedback XML Message";
+  }
+}
+
+public class TWOrderXMLParser implements XMLParser{
+  @Override
+  public String parse() {
+    System.out.println("TW Parsing order XML...");
+    return "TW Order XML Message";
+  }
+}
+
+public class TWResponseXMLParser implements XMLParser{
+  @Override
+  public String parse() {
+    System.out.println("TW Parsing response XML...");
+    return "TW Response XML Message";
+  }
+}
+#+end_src
+
+我们依照这个关系，可以创建两个工厂。
+#+begin_src java
+public interface AbstractParserFactory {
+  public XMLParser getParserInstance(String parserType);
+}
+
+public class NYParserFactory implements AbstractParserFactory {
+  @Override
+  public XMLParser getParserInstance(String parserType) {
+    switch(parserType){
+    case "NYERROR": return new NYErrorXMLParser();
+    case "NYFEEDBACK": return new NYFeedbackXMLParser ();
+    case "NYORDER": return new NYOrderXMLParser();
+    case "NYRESPONSE": return new NYResponseXMLParser();
+    }
+    return null;
+  }
+}
+
+public class TWParserFactory implements AbstractParserFactory {
+  @Override
+  public XMLParser getParserInstance(String parserType) {
+    switch(parserType){
+    case "TWERROR": return new TWErrorXMLParser();
+    case "TWFEEDBACK": return new TWFeedbackXMLParser ();
+    case "TWORDER": return new TWOrderXMLParser();
+    case "TWRESPONSE": return new TWResponseXMLParser();
+    }
+    return null;
+  }
+}
+#+end_src
+
+可选了，你可以再定义一个类，来向用户屏蔽工厂复杂性。
+#+begin_src java
+public final class ParserFactoryProducer {
+  private ParserFactoryProducer(){
+    throw new AssertionError();
+  }
+  public static AbstractParserFactory getFactory(String factoryType){
+    switch(factoryType)
+      {
+      case "NYFactory": return new NYParserFactory();
+      case "TWFactory": return new TWParserFactory();
+      }
+    return null;
+  }
+}
+
+
+#+end_src
+
+
 
 * Behavioral Patterns
 
