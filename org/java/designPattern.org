@@ -455,6 +455,9 @@ public class TestFlyweight {
 对就UML图， Platform 就相当于Flyweight接口。 JavaPlatform相当于ConcreteFlyweight.
 而excute方法就是operation方法 。
 
+
+
+
 * Creational Patterns
 
 ** 单例模式
@@ -1213,7 +1216,87 @@ public final class ParserFactoryProducer {
 #+end_src
 
 
+** Prototype Pattern 原型模式
+就是对象不直接创建，而通过复制已经创建好的原型对象，来创建。以此来提高性能。
+我只觉得这只适用于要创建的对象是几个固定的状态对象时，才适用这种模式。
 
+比如用于的访问权限管理
+- "USER"
+- "ADMIN" add/remove USERS
+- "MANAGER" read/generate reports
+- "VP" modify reports
+
+我们假设给你一个control level 比如ADMIN。你要知道他都有什么权限需要查询数据库。 那么每创建一个ADMIN的controllevel
+就都需要查询一次数据库， 这显示不如复制已经创建好的ADMIN来的快。
+
+原型模式的实现方式是继承java clonable，重写它的clone()方法。
+#+begin_src java
+public interface Prototype extends Cloneable {
+  public AccessControl clone() throws CloneNotSupportedException;
+}
+
+public class AccessControl implements Prototype{
+  private final String controlLevel;
+  private String access;
+  public AccessControl(String controlLevel,String access){
+    this.controlLevel = controlLevel;
+    this.access = access;
+  }
+  @Override
+  public AccessControl clone(){
+    try {
+      return (AccessControl) super.clone();
+    } catch (CloneNotSupportedException e) {
+      e.printStackTrace();
+    }
+    return null;
+  }
+  public String getControlLevel(){
+    return controlLevel;
+  }
+  public String getAccess() {
+    return access;
+  }
+  public void setAccess(String access) {
+    this.access = access;
+  }
+}
+#+end_src
+
+我们看到是调用了super.clone()也就是Cloneable的clone(), 换句话说Cloneable不只是接口还有clone的实现，虽然不知道
+是什么实现的。
+
+总之是先super.clone(), 然后再类型转换为AccessControl并返回。
+
+然后我们通过一个工厂先把对象创建好。
+#+begin_src java
+public class AccessControlProvider {
+  private static Map<String, AccessControl>map = new HashMap<String, AccessControl>() ←-
+    ;
+  static{
+    System.out.println("Fetching data from external resources and creating ←-
+access control objects...");
+    map.put("USER", new AccessControl("USER","DO_WORK"));
+    map.put("ADMIN", new AccessControl("ADMIN","ADD/REMOVE USERS"));
+    map.put("MANAGER", new AccessControl("MANAGER","GENERATE/READ REPORTS"));
+    map.put("VP", new AccessControl("VP","MODIFY REPORTS"));
+  }
+  public static AccessControl getAccessControlObject(String controlLevel){
+    AccessControl ac = null;
+    ac = map.get(controlLevel);
+    if(ac!=null){
+      return ac.clone();
+    }
+    return null;
+  }
+}
+#+end_src
+
+然后我们就可以这样去使用了
+#+begin_src java
+userAccessControl = AccessControlProvider.getAccessControlObject("USER");
+user = new User("User B", "USER Level", userAccessControl);
+#+end_src
 * Behavioral Patterns
 
 ** Observer Pattern观察者模式
