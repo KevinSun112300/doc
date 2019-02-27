@@ -1342,6 +1342,1099 @@ Handler <|.. ConcreteHandlerB
 
 关键点是 Handler 里有一个指向下一个Handler的指针
 
+** Memento[məˈmentoʊ] pattern 备忘录模式
+有些时候我们需要记录对象的状态变化，以便在需要的时候提供给用户undo操作。
+#+begin_src plantuml :file memento.png
+class Originator{
+state
+}
+
+class Memento{
+}
+
+class CareTaker{
+}
+
+CareTaker "1" o-- "n" Memento
+Originator "1" o-- "1" CareTaker
+
+#+end_src
+
+#+RESULTS:
+[[file:memento.png]]
+
+Originator原意是创始人。 它就是我们的要操作的对象。 Originator并不是所有的属性和成员变量都需要存储的。  Memento就是相当于Originator的“子对象”，也就是它的成员变量或者状态的
+子集。   CareTaker存了所有的备份点，用于undo
+#+begin_src java
+public class CareTaker {
+  private final Map<String, Memento>savepointStorage = new HashMap<String, Memento>() ←-
+    ;
+  public void saveMemento(Memento memento,String savepointName){
+    System.out.println("Saving state..."+savepointName);
+    savepointStorage.put(savepointName, memento);
+  }
+  public Memento getMemento(String savepointName){
+    System.out.println("Undo at ..."+savepointName);
+    return savepointStorage.get(savepointName);
+  }
+  public void clearSavepoints(){
+    System.out.println("Clearing all save points...");
+    savepointStorage.clear();
+  }
+}
+
+public class Memento {
+  private double x;
+  private double y;
+  public Memento(double x, double y){
+    this.x = x;
+    this.y = y;
+  }
+  public double getX(){
+    return x;
+  }
+  public double getY(){
+    return y;
+  }
+}
+
+public class Originator {
+  private double x;
+  private double y;
+  private String lastUndoSavepoint;
+  CareTaker careTaker;
+  public Originator(double x, double y,CareTaker careTaker){
+    this.x = x;
+    this.y = y;
+    this.careTaker = careTaker;
+    createSavepoint("INITIAL");
+  }
+  public double getX(){
+    return x;
+  }
+  public double getY(){
+    return y;
+  }
+  public void setX(double x) {
+    this.x = x;
+  }
+  public void setY(double y) {
+    this.y = y;
+  }
+  public void createSavepoint(String savepointName){
+    careTaker.saveMemento(new Memento(this.x, this.y), savepointName);
+    lastUndoSavepoint = savepointName;
+  }
+  public void undo(){
+    setOriginatorState(lastUndoSavepoint);
+  }
+  public void undo(String savepointName){
+    setOriginatorState(savepointName);
+  }
+  public void undoAll(){
+    setOriginatorState("INITIAL");
+    careTaker.clearSavepoints();
+  }
+  private void setOriginatorState(String savepointName){
+    Memento mem = careTaker.getMemento(savepointName);
+    this.x = mem.getX();
+    this.y = mem.getY();
+  }
+  @Override
+  public String toString(){
+    return "X: "+x+", Y: "+y;
+  }
+}
+#+end_src
+
+
+
+
+
+** Template Pattern 模板模式
+比如说每种数据库driver的连接步骤基本是一样的，只不过不同的driver每一步的算法是不一样的。 这是就可以使用模板模式。
+#+begin_src java
+public abstract class ConnectionTemplate {
+  public final void run() {
+    setDBDriver();
+    setCredentials();
+    connect();
+    prepareStatement();
+    setData();
+    insert();
+    close();
+    destroy();
+  }
+  public abstract void setDBDriver();
+  public abstract void setCredentials();
+  public void connect() {
+    System.out.println("Setting connection...");
+  }
+  public void prepareStatement() {
+    System.out.println("Preparing insert statement...");
+  }
+  public abstract void setData();
+  public void insert() {
+    System.out.println("Inserting data...");
+  }
+  public void close() {
+    System.out.println("Closing connections...");
+  }
+  public void destroy() {
+    System.out.println("Destroying connection objects...");
+  }
+}
+
+public class MySqLCSVCon extends ConnectionTemplate {
+  @Override
+  public void setDBDriver() {
+    System.out.println("Setting MySQL DB drivers...");
+  }
+  @Override
+  public void setCredentials() {
+    System.out.println("Setting credentials for MySQL DB...");
+  }
+  @Override
+  public void setData() {
+    System.out.println("Setting up data from csv file....");
+  }
+}
+
+public class OracleTxtCon extends ConnectionTemplate {
+  @Override
+  public void setDBDriver() {
+    System.out.println("Setting Oracle DB drivers...");
+  }@Override
+  public void setCredentials() {
+    System.out.println("Setting credentials for Oracle DB...");
+  }
+  @Override
+  public void setData() {
+    System.out.println("Setting up data from txt file....");
+  }
+}
+
+public class TestTemplatePattern {
+  public static void main(String[] args) {
+    System.out.println("For MYSQL....");
+    ConnectionTemplate template = new MySqLCSVCon();
+    template.run();
+    System.out.println("For Oracle...");
+    template = new OracleTxtCon();
+    template.run();
+  }
+}
+#+end_src
+
+** state pattern
+有这样一个应用场景，一个做饭机器人，有三种状态，开启状态、关闭状态、cook状态。机器人有三个行为 walk 、cook、switch off.
+首先要理解的是状态模式中的状态和行为。 三种状态，每种状态下都可以进行walk 、cook、 switch off.三种操作，只不过操作的执行效果不一样。
+
+cook状态下的switch off操作是无效。 off状态下执行walk会自动进入开启状态，off状态下cook操作无效等等。
+
+先定义状态接口
+#+begin_src java
+public interface RoboticState {
+  public void walk();
+  public void cook();
+  public void off();
+}
+#+end_src
+
+然后定义状态
+#+begin_src java
+public class RoboticOn implements RoboticState{
+  private final Robot robot;
+  public RoboticOn(Robot robot){
+    this.robot = robot;
+  }
+  @Override
+  public void walk() {
+    System.out.println("Walking...");
+  }
+  @Override
+  public void cook() {
+    System.out.println("Cooking...");
+    robot.setRoboticState(robot.getRoboticCook());
+  }
+  @Override
+  public void off() {
+    robot.setState(robot.getRoboticOff());
+    System.out.println("Robot is switched off");
+  }
+}
+
+
+public class RoboticCook implements RoboticState{
+  private final Robot robot;
+  public RoboticCook(Robot robot){
+    this.robot = robot;
+  }
+  @Override
+  public void walk() {
+    System.out.println("Walking...");
+    robot.setRoboticState(robot.getRoboticOn());
+  }
+  @Override
+  public void cook() {
+    System.out.println("Cooking...");
+  }
+  @Override
+  public void off() {
+    System.out.println("Cannot switched off while cooking...");
+  }
+}
+
+public class RoboticOff implements RoboticState{
+  private final Robot robot;
+  public RoboticOff(Robot robot){
+    this.robot = robot;
+  }
+  @Override
+  public void walk() {
+    System.out.println("Walking...");
+    robot.setRoboticState(robot.getRoboticOn());
+  }
+  @Override
+  public void cook() {
+    System.out.println("Cannot cook at Off state.");
+  }
+  @Override
+  public void off() {
+    System.out.println("Already switched off...");
+  }
+}
+#+end_src
+
+
+
+接下来我们来定义使用这些状态的对象，也就是机器人对象，在state模式中称为Context.
+
+首先在State定义中，我们看到每个状态都绑定了Context对象Robot. 这是因为，切换状态的是Context而不是State.另外，
+要切换成什么状态，那个状态对象需要通过Context对象来获得。
+
+所以Context对象，首先要实现的是存有所有状态对象，好方法在State对象获取其它状态并切换。
+
+其次，我们说所有的tState可以进行那三种操作，实际上这种说法是不现实逻辑的，实际上能进行那三种操作的是Robot本身，而
+不是State。  所以 Robot本身也要继承RoboticState
+#+begin_src java
+public class Robot implements RoboticState{
+  private RoboticState roboticOn;
+  private RoboticState roboticCook;
+  private RoboticState roboticOff;
+  private RoboticState state;
+  public Robot(){
+    this.roboticOn = new RoboticOn(this);
+    this.roboticCook = new RoboticCook(this);
+    this.roboticOff = new RoboticOff(this);
+    this.state = roboticOn;
+  }
+  public void setRoboticState(RoboticState state){
+    this.state = state;
+  }
+  @Override
+  public void walk() {
+    state.walk();
+  }
+  @Override
+  public void cook() {
+    state.cook();
+  }
+  @Override
+  public void off() {
+    state.off();
+  }
+  public RoboticState getRoboticOn() {
+    return roboticOn;
+  }
+  public void setRoboticOn(RoboticState roboticOn) {
+    this.roboticOn = roboticOn;
+  }
+  public RoboticState getRoboticCook() {
+    return roboticCook;
+  }
+  public void setRoboticCook(RoboticState roboticCook) {
+    this.roboticCook = roboticCook;
+  }
+  public RoboticState getRoboticOff() {
+    return roboticOff;
+  }
+  public void setRoboticOff(RoboticState roboticOff) {this.roboticOff = roboticOff;
+  }
+  public RoboticState getState() {
+    return state;
+  }
+  public void setState(RoboticState state) {
+    this.state = state;
+  }
+}
+#+end_src
+
+使用代码是这样的
+#+begin_src java
+public class TestStatePattern {
+
+public static void main(String[] args) {
+  Robot robot = new Robot();
+  robot.walk();
+  robot.cook();
+  robot.walk();
+  robot.off();
+  robot.walk();
+  robot.off();
+  robot.cook();
+
+}
+}
+#+end_src
+
+
+** Strategy pattern
+最简单的设计模式，但很有用。几乎到处被用，甚至与其它模式结合。所以这个模式非常重要。
+首先来看一下什么是statege模式。
+#+begin_src plantuml :file stratege.png
+interface Strategy{
+operation()
+}
+Context o-- Strategy
+
+Strategy <|.. ConcreteStrageA
+Strategy <|.. ConcreteStrageB
+#+end_src
+
+#+RESULTS:
+[[file:stratege.png]]
+
+比如说一个场景，Text Editor 的格式功能
+先定义Strategy接口和几个实现
+#+begin_src java
+public interface TextFormatter {
+  public void format(String text);
+}
+
+public class CapTextFormatter implements TextFormatter{
+  @Override
+  public void format(String text) {
+    System.out.println("[CapTextFormatter]: "+text.toUpperCase());
+  }
+}
+public class LowerTextFormatter implements TextFormatter{
+  @Override
+  public void format(String text) {
+    System.out.println("[LowerTextFormatter]: "+text.toLowerCase());
+  }
+}
+#+end_src
+
+
+然后定义Context
+#+begin_src java
+public class TextEditor {
+  private final TextFormatter textFormatter;
+  public TextEditor(TextFormatter textFormatter){
+    this.textFormatter = textFormatter;
+  }
+  public void publishText(String text){
+    textFormatter.format(text);
+  }
+}
+#+end_src
+使用
+#+begin_src java
+public class TestStrategyPattern {
+  public static void main(String[] args) {
+    TextFormatter formatter = new CapTextFormatter();
+    TextEditor editor = new TextEditor(formatter);
+    editor.publishText("Testing text in caps formatter");
+    formatter = new LowerTextFormatter();
+    editor = new TextEditor(formatter);
+    editor.publishText("Testing text in lower formatter");
+  }
+}
+#+end_src
+
+** Command Pattern 命令模式
+helps to decouples the invoker from the receiver of a request.
+
+#+begin_src plantuml :file command1.png
+interface AbstractCommand{
+excute()
+}
+class ConcreteCommand{
+excute()
+}
+AbstractCommand <|.. ConcreteCommand
+
+ConcreteCommand o-- Invoker
+
+
+
+#+end_src
+
+#+RESULTS:
+[[file:command1.png]]
+Invoker是对各种命令的实现调用执行者。
+
+比如有各种各样的任务需要提交和处理。
+
+AbstractCommand
+#+begin_src java
+public interface Job {
+  public void run();
+}
+
+#+end_src
+
+Invoker
+#+begin_src java
+public class Email {
+  public void sendEmail(){
+    System.out.println("Sending email.......");
+  }
+}
+public class FileIO {
+  public void execute(){
+    System.out.println("Executing File IO operations...");
+  }
+}
+public class Logging {
+  public void log(){
+    System.out.println("Logging...");
+  }
+}
+public class Sms {
+  public void sendSms(){
+    System.out.println("Sending SMS...");
+  }
+}
+#+end_src
+
+ConcreteCommand
+#+begin_src java
+public class EmailJob implements Job{
+  private Email email;
+  public void setEmail(Email email){
+    this.email = email;
+  }
+  @Override
+  public void run() {
+    System.out.println("Job ID: "+Thread.currentThread().getId()+" executing
+email jobs.");
+    if(email!=null){
+      email.sendEmail();
+    }
+    try {
+      Thread.sleep(1000);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
+}
+
+public class FileIOJob implements Job{
+  private FileIO fileIO;
+  public void setFileIO(FileIO fileIO){
+    this.fileIO = fileIO;
+  }
+  @Override
+  public void run() {
+    System.out.println("Job ID: "+Thread.currentThread().getId()+" executing
+fileIO jobs.");
+    if(fileIO!=null){
+      fileIO.execute();
+    }
+    ←-
+       try {
+         Thread.sleep(1000);
+       } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
+}
+
+public class LoggingJob implements Job{
+  private Logging logging;
+  public void setLogging(Logging logging){
+    this.logging = logging;
+  }
+  @Override
+  public void run() {
+    System.out.println("Job ID: "+Thread.currentThread().getId()+" executing
+logging jobs.");
+    if(logging!=null){
+      logging.log();
+    }
+    try {
+      Thread.sleep(1000);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
+}
+
+
+public class SmsJob implements Job{
+  private Sms sms;
+  public void setSms(Sms sms) {
+    this.sms = sms;
+  }
+  @Override
+  public void run() {
+    System.out.println("Job ID: "+Thread.currentThread().getId()+" executing
+sms jobs.");
+    if(sms!=null){
+      sms.sendSms();
+    }
+    ←-
+       try {
+         Thread.sleep(1000);
+       } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
+}
+#+end_src
+
+
+这样做的好处就是client不用知道每个任务的具体实现。 然后这些任务又可以通过 Job接口放到队列里。
+这时就可以做一个线程池来排除处理所有的任务了。
+#+begin_src java
+public class ThreadPool {
+  private final BlockingQueue<Job> jobQueue;
+  private final Thread[] jobThreads;
+  private volatile boolean shutdown;
+  public ThreadPool(int n)
+  {
+    jobQueue = new LinkedBlockingQueue<>();
+    jobThreads = new Thread[n];
+    for (int i = 0; i < n; i++) {
+      jobThreads[i] = new Worker("Pool Thread " + i);
+      jobThreads[i].start();
+    }
+  }
+  public void addJob(Job r)
+  {
+    try {
+      jobQueue.put(r);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
+  public void shutdownPool()
+  {
+    while (!jobQueue.isEmpty()) {
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+    shutdown = true;
+    for (Thread workerThread : jobThreads) {
+      workerThread.interrupt();
+    }
+  }
+  private class Worker extends Thread
+  {
+    public Worker(String name)
+    {
+      super(name);
+    }
+    public void run()
+    {
+      while (!shutdown) {
+        try {
+          Job r = jobQueue.take();
+          r.run();
+        } catch (InterruptedException e) {
+        }
+      }
+    }
+  }
+}
+#+end_src
+
+BlockingQueue是一个并发队列。
+当take()就是等待，直到队内有元素。利益于command模式，通过Job接口，我们可以把任务放在队列里的。
+
+发起任务，只需要调用addJob向队列里提交任务就可以。
+来看一下使用的代码
+#+begin_src java
+public class TestCommandPattern {
+  public static void main(String[] args)
+  {
+    init();
+  }
+  private static void init()
+  {
+    ThreadPool pool = new ThreadPool(10);
+    Email email = null;
+    EmailJob emailJob = new EmailJob();
+    Sms sms = null;
+    SmsJob smsJob = new SmsJob();
+    FileIO fileIO = null;;
+    FileIOJob fileIOJob = new FileIOJob();
+    Logging logging = null;
+    LoggingJob logJob = new LoggingJob();
+    for (int i = 0; i < 5; i++) {
+      email = new Email();
+      emailJob.setEmail(email);
+      sms = new Sms();
+      smsJob.setSms(sms);
+      fileIO = new FileIO();
+      fileIOJob.setFileIO(fileIO);
+      logging = new Logging();
+      logJob.setLogging(logging);
+      pool.addJob(emailJob);
+      pool.addJob(smsJob);
+      pool.addJob(fileIOJob);
+      pool.addJob(logJob);
+    }
+    pool.shutdownPool();
+  }
+}
+#+end_src
+
+
+** Interpreter Pattern解释器模式
+先不看这个模式了，这就是给其它语言写解释器用的， 用的频率不高
+
+** Decorator Pattern 修饰模式
+
+#+begin_src plantuml :file decorator.png
+interface Component{
+operation()
+}
+class ConcreteComponent{
+operation()
+}
+Component <|.. ConcreteComponent
+
+class Decorator{
+operation()
+}
+
+Component <|.. Decorator
+
+class ConcreteDecoratorA{
+operation()
+}
+class ConcreteDecoratorB{
+operation()
+}
+
+Decorator <|-- ConcreteDecoratorA
+Decorator <|-- ConcreteDecoratorB
+
+
+Component ..o Decorator
+
+#+end_src
+
+#+RESULTS:
+[[file:decorator.png]]
+
+
+看起来有点像桥接模式。但区别是这些东西都是Compoent. "装饰、修饰"的意思是添加东西、添加功能的意思。
+比如说，我们素pizza和肉pizza. 但是用户可以再这两种pizza上添加topping(配料)， 比如Broccoli西兰花、奶酪、鸡肉等等。
+这时我们主要是要对不同的pizza给出描述和价格。
+首先我们定义pizza接口和两种pizza类型
+#+begin_src java
+public interface Pizza {
+  public String getDesc();
+  public double getPrice();
+}public class SimplyVegPizza implements Pizza{
+  @Override
+  public String getDesc() {
+    return "SimplyVegPizza (230)";
+  }
+  @Override
+  public double getPrice() {
+    return 230;
+  }
+}
+
+public class SimplyNonVegPizza implements Pizza{
+  @Override
+  public String getDesc() {
+    return "SimplyNonVegPizza (350)";
+  }
+  @Override
+  public double getPrice() {
+    return 350;
+  }
+}
+#+end_src
+
+然后定义Decarator和加各种配料的pizza
+#+begin_src java
+public abstract class PizzaDecorator implements Pizza {
+  @Override
+  public String getDesc() {
+    return "Toppings";
+  }
+}
+public class Broccoli extends PizzaDecorator{
+  private final Pizza pizza;
+  public Broccoli(Pizza pizza){
+    this.pizza = pizza;
+  }
+  @Override
+  public String getDesc() {
+    return pizza.getDesc()+", Broccoli (9.25)";
+  }
+  @Override
+  public double getPrice() {
+    return pizza.getPrice()+9.25;
+  }
+}
+public class Cheese extends PizzaDecorator{
+  private final Pizza pizza;
+  public Cheese(Pizza pizza){
+    this.pizza = pizza;
+  }
+  @Override
+  public String getDesc() {
+    return pizza.getDesc()+", Cheese (20.72)";
+  }
+  @Override
+  public double getPrice() {
+    return pizza.getPrice()+20.72;
+  }
+}
+public class Chicken extends PizzaDecorator{
+  private final Pizza pizza;
+  public Chicken(Pizza pizza){
+    this.pizza = pizza;
+  }
+  @Override
+  public String getDesc() {
+    return pizza.getDesc()+", Chicken (12.75)";
+  }
+  @Override
+  public double getPrice() {
+    return pizza.getPrice()+12.75;
+  }
+}
+// 菲达奶酪
+public class FetaCheese extends PizzaDecorator{
+  private final Pizza pizza;
+  public FetaCheese(Pizza pizza){
+    this.pizza = pizza;
+  }
+  @Override
+  public String getDesc() {
+    return pizza.getDesc()+", Feta Cheese (25.88)";
+  }
+  @Override
+  public double getPrice() {
+    return pizza.getPrice()+25.88;
+  }
+}
+#+end_src
+
+然后是使用
+#+begin_src java
+public class TestDecoratorPattern {
+  public static void main(String[] args) {
+    DecimalFormat dformat = new DecimalFormat("#.##");
+    pizza = new SimplyNonVegPizza();
+    pizza = new Cheese(pizza);
+    System.out.println("Desc: "+pizza.getDesc());
+    System.out.println("Price: "+dformat.format(pizza.getPrice()));
+  }
+#+end_src
+
+其实就是说，当我们想在一个继承树上的对象添加东西又不想影响原来的继承关系的时候可以使用decorator模式。
+
+** Iterator pattern 迭代器模式
+对于聚合类型，比如List ，不想通过扩大List的接口，来实现不同的遍历方式。 迭代器模式帮你把遍历这个功能脱离出聚合类型本身。
+
+我们先定义聚合类型存储的元素类型
+#+begin_src java
+public class Shape {
+  private int id;
+  private String name;
+  public Shape(int id, String name){
+    this.id = id;
+    this.name = name;
+  }
+  public int getId() {
+    return id;
+  }
+  public void setId(int id) {
+    this.id = id;
+  }
+  public String getName() {
+    return name;
+  }
+  public void setName(String name) {
+    this.name = name;
+  }
+  @Override
+  public String toString(){
+    return "ID: "+id+" Shape: "+name;
+  }
+}
+#+end_src
+然后定义容器
+#+begin_src java
+public class ShapeStorage {
+  private Shape []shapes = new Shape[5];
+  private int index;
+  public void addShape(String name){
+    int i = index++;
+    shapes[i] = new Shape(i,name);
+  }
+  public Shape[] getShapes(){
+    return shapes;
+  }
+}
+#+end_src
+最后是迭代器
+#+begin_src java
+public class ShapeIterator implements Iterator<Shape>{
+  private Shape [] shapes;
+  int pos;
+  public ShapeIterator(Shape []shapes){
+    this.shapes = shapes;
+  }
+  @Override
+  public boolean hasNext() {
+    if(pos >= shapes.length || shapes[pos] == null)
+      return false;
+    return true;
+  }
+  @Override
+  public Shape next() {
+    return shapes[pos++];
+  }
+  @Override
+  public void remove() {
+    if(pos <=0 )
+      throw new IllegalStateException("Illegal position");
+    if(shapes[pos-1] !=null){
+      for (int i= pos-1; i<(shapes.length-1);i++){
+        shapes[i] = shapes[i+1];
+      }
+      shapes[shapes.length-1] = null;
+    }
+  }
+}
+#+end_src
+
+使用方法
+#+begin_src java
+public static void main(String[] args) {
+  ShapeStorage storage = new ShapeStorage();
+  storage.addShape("Polygon");
+  storage.addShape("Hexagon");
+  storage.addShape("Circle");
+  storage.addShape("Rectangle");
+  storage.addShape("Square");
+  ShapeIterator iterator = new ShapeIterator(storage.getShapes());
+  while(iterator.hasNext()){
+    System.out.println(iterator.next());
+  }
+  System.out.println("Apply removing while iterating...");
+  iterator = new ShapeIterator(storage.getShapes());
+  while(iterator.hasNext()){
+    System.out.println(iterator.next());
+    iterator.remove();
+  }
+}
+#+end_src
+
+** Visitor 模式
+还记得讲构成模式的时候，我们的用例是html tag的分析吗？ 现在有新的需求， 添加样式。
+你可以每一个composite的addTag方法添加html tag时，加上 "style=" ,但你知道这是个空难。于是，你想到了
+在compositer接口里，加一个addClass方法，为tag添加class.  但这有两个缺点， 如果有太多的child class, 我们要为每
+一个class实现addClass方法。 二、如果有另的操作需要添加比如添加属性，那就要做同样的事情，费时。
+
+访问者模式，就是为了在不改变原classes基础上实现对元素的操作。
+
+首先给原有的顶层对象加个接口
+#+begin_src plantuml :file visitor1.png
+interface Element{
+accept(visitor)
+}
+class ConcreteElementA{
+accept(visitor)
+}
+class ConcreteElementB{
+accept(visitor)
+}
+
+Element <|.. ConcreteElementA
+Element <|.. ConcreteElementB
+
+
+#+end_src
+
+#+RESULTS:
+[[file:visitor1.png]]
+
+通过accept方法接收visitor对象。
+
+Visitor 这一侧
+#+begin_src plantuml :file visitor2.png
+interface Visitor{
+visitConcreateElementA(ConcreteElementA)
+visitConcreateElementB(ConcreteElementB)
+
+}
+class ConcreteVisitor1{
+visitConcreateElementA(ConcreteElementA)
+visitConcreateElementB(ConcreteElementB)
+}
+class ConcreteVisitor2{
+visitConcreateElementA(ConcreteElementA)
+visitConcreateElementB(ConcreteElementB)
+}
+Visitor <|.. ConcreteVisitor1
+Visitor <|.. ConcreteVisitor2
+
+#+end_src
+
+#+RESULTS:
+[[file:visitor2.png]]
+
+先看element 一侧
+#+begin_src java
+public interface Element {
+  public void accept(Visitor visitor);
+}
+
+public abstract class HtmlTag implements Element{
+  public abstract String getTagName();
+  public abstract void setStartTag(String tag);
+  public abstract String getStartTag();
+  public abstract String getEndTag();
+  public abstract void setEndTag(String tag);
+  void setTagBody(String tagBody){
+    throw new UnsupportedOperationException("Current operation is not support
+for this object");
+  }
+  public void addChildTag(HtmlTag htmlTag){
+    throw new UnsupportedOperationException("Current operation is not support
+for this object");
+  }
+  public void removeChildTag(HtmlTag htmlTag){
+    throw new UnsupportedOperationException("Current operation is not support
+for this object");
+  }
+  public List<HtmlTag>getChildren(){
+    throw new UnsupportedOperationException("Current operation is not support
+for this object");
+  }
+  public abstract void generateHtml();
+}
+
+
+public class HtmlParentElement extends HtmlTag {
+
+
+  private String tagName;
+  private String startTag;
+  private String endTag;
+  List<HtmlTag>childrenTag;
+  public HtmlParentElement(String tagName){
+    this.tagName = tagName;
+    this.startTag = "";
+    this.endTag = "";
+    this.childrenTag = new ArrayList<>();
+  }
+  @Override
+  public String getTagName() {
+    return tagName;
+  }
+  @Override
+  public void setStartTag(String tag) {
+    this.startTag = tag;
+  }
+  @Override
+  public void setEndTag(String tag) {
+    this.endTag = tag;
+  }
+  @Override
+  public String getStartTag() {
+    return startTag;
+  }
+  @Override
+  public String getEndTag() {
+    return endTag;
+  }
+  @Override
+  public void addChildTag(HtmlTag htmlTag){
+    childrenTag.add(htmlTag);
+  }
+  @Override
+  public void removeChildTag(HtmlTag htmlTag){
+    childrenTag.remove(htmlTag);
+  }
+  @Override
+  public List<HtmlTag>getChildren(){
+    return childrenTag;
+  }
+  @Override
+  public void generateHtml() {
+    System.out.println(startTag);
+    for(HtmlTag tag : childrenTag){
+      tag.generateHtml();
+    }
+    System.out.println(endTag);
+  }
+  @Override
+  public void accept(Visitor visitor) {
+    visitor.visit(this);
+  }
+}
+#+end_src
+
+再看visitor
+#+begin_src java
+public interface Visitor {
+  public void visit(HtmlElement element);
+  public void visit(HtmlParentElement parentElement);
+}
+
+public class CssClassVisitor implements Visitor{
+  @Override
+  public void visit(HtmlElement element) {
+    element.setStartTag(element.getStartTag().replace(">", " class=’visitor’>") ←-
+                        );
+  }
+  @Override
+  public void visit(HtmlParentElement parentElement) {
+    parentElement.setStartTag(parentElement.getStartTag().replace(">", " class ←-
+=’visitor’>"));
+  }
+}
+
+public class StyleVisitor implements Visitor {
+  @Override
+  public void visit(HtmlElement element) {
+    element.setStartTag(element.getStartTag().replace(">", " style=’width:46px ←-
+;’>"));
+  }
+  @Override
+  public void visit(HtmlParentElement parentElement) {
+    parentElement.setStartTag(parentElement.getStartTag().replace(">", " style ←-
+=’width:58px;’>"));
+  }
+}
+#+end_src
+使用
+#+begin_src java
+Visitor cssClass = new CssClassVisitor();
+Visitor style = new StyleVisitor();
+parentTag = new HtmlParentElement("<html>");
+parentTag.setStartTag("<html>");
+parentTag.setEndTag("</html>");
+parentTag.accept(style);
+parentTag.accept(cssClass);
+#+end_src
+
 
 * ref
 http://plantuml.com/zh/class-diagram
