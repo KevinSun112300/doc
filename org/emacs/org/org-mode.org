@@ -264,6 +264,11 @@ the radius of Alpha Centauri is R_{Alpha Centauri} = 1.28 x R_{sun}.
 The radius of the sun is R_sun = 6.96 x 10^8 m.  On the other hand,
 the radius of Alpha Centauri is R_{Alpha Centauri} = 1.28 x R_{sun}.
 
+#+begin_example
+#+OPTIONS: ^:nil
+#+end_example
+可以取消这种解析。
+
 ** 符号
 使用类LaTeX-like syntax ， 以\开头 org-entities-help 可以查到所有的符号
 
@@ -720,7 +725,55 @@ x=\sqrt{b}                              % even tables, figures
 
 [[file:latax.png]]
 
+**  usage
+#+begin_example
+// class define
+interface Interface1{
+}
+class ClassA{
+op()
+}
+class ClassB{
+}
+// line
 
+// generilize
+ClassA <-- ClassB
+// realize
+Interface1 <|.. ClassA
+// 聚合
+ClassA o-- ClassB
+// 组合
+ClassA *-- ClassB
+
+
+
+// user case
+
+// 用例圆
+(First usecase)
+(Another usecase) as (UC2)
+usecase UC3
+usecase (Last\nusecase) as UC4
+
+// 用例图添加描述
+usecase UC1 as "You can use
+several lines to define your usecase.
+You can also use separators.
+--
+Several separators are possible.
+==
+And you can add titles:
+..Conclusion..
+This allows large description."
+
+actor
+:actor1: as actora
+
+//线和描述
+:Main Admin: ---> (Use the application) : This is\nyet another\nlabel
+
+#+end_example
 
 
 
