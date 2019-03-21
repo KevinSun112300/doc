@@ -1,0 +1,196 @@
+* 19 Reading and Printing Lisp Objects
+从Lisp objects 到 textual form就是print
+
+反之从textual form 到 Lisp objects就是read
+
+**  read
+read 这个函数可以接受以下类型
+- buffer
+#+begin_example
+     ---------- Buffer: foo ----------
+     This-!- is the contents of foo.
+     ---------- Buffer: foo ----------
+
+     (read (get-buffer "foo"))
+          ⇒ is
+     (read (get-buffer "foo"))
+          ⇒ the
+
+     ---------- Buffer: foo ----------
+     This is the-!- contents of foo.
+     ---------- Buffer: foo ----------
+#+end_example
+read 是会路过空格的。
+
+- string
+#+begin_example
+     (read "(When in) the course")
+          ⇒ (When in)
+     (read "When in the course")
+          ⇒ When
+
+#+end_example
+之所以会这样是因为read想要读一个lisp表达式。如果没读成才读一个word.
+永远要记住所谓read,就是将一个text lisp读成一个lisp object.
+事实上读到的when,也是lisp string object，然后打印出显示when的。
+
+
+- marker
+#+begin_example
+     ---------- Buffer: foo ----------
+     This is the contents of foo.
+     ---------- Buffer: foo ----------
+
+     (setq m (set-marker (make-marker) 1 (get-buffer "foo")))
+          ⇒ #<marker at 1 in foo>
+     (read m)
+          ⇒ This
+     m
+          ⇒ #<marker at 5 in foo>   ;; Before the first space.
+#+end_example
+marker和point是没关系的。
+
+
+- t
+如果参数是t表示从minibuffer里读取lisp 表达式。
+#+begin_example
+ (read t)
+          ⇒ 23
+     ---------- Buffer: Minibuffer ----------
+     Lisp expression: 23 <RET>
+     ---------- Buffer: Minibuffer ----------
+#+end_example
+
+(read t) 和(read) 是一个效果，都是忽略参数。
+
+
+- function
+有点复杂现在看不懂。
+
+** 19.2 input function
+除了read函数，还有
+
+Function: read-from-string string &optional start end
+
+
+#+begin_example
+      (read-from-string "(setq x 55) (setq y 5)")
+               ⇒ ((setq x 55) . 11)
+        返回是一个cell , car 是读的内容，cdr 是下一个要读的位置， 位置是0开始。
+
+
+       (read-from-string "\"A short string\"")
+               ⇒ ("A short string" . 16)
+
+          ;; Read starting at the first character.
+          (read-from-string "(list 112)" 0)
+               ⇒ ((list 112) . 10)
+
+               ;; Read starting at the second character.
+          (read-from-string "(list 112)" 1)
+               ⇒ (list . 5)
+          ;; Read starting at the seventh character,
+          ;;   and stopping at the ninth.
+          (read-from-string "(list 112)" 6 8)
+               ⇒ (11 . 8)
+;; 这句是从6开始读，读到8,得到结果是11(就是112的那个11)
+#+end_example
+
+** 19.4 output
+参数一般可以接受以下类型
+- buffer
+输入到point的位置。
+#+begin_example
+  ---------- Buffer: foo ----------
+     This is t-!-he contents of foo.
+     ---------- Buffer: foo ----------
+
+     (print "This is the output" (get-buffer "foo"))
+          ⇒ "This is the output"
+
+     ---------- Buffer: foo ----------
+     This is t
+     "This is the output"
+     -!-he contents of foo.
+     ---------- Buffer: foo ----------
+
+#+end_example
+- marker
+#+begin_example
+  ---------- Buffer: foo ----------
+     This is the -!-output
+     ---------- Buffer: foo ----------
+
+     (setq m (copy-marker 10))
+          ⇒ #<marker at 10 in foo>
+
+     (print "More output for foo." m)
+          ⇒ "More output for foo."
+
+     ---------- Buffer: foo ----------
+     This is t
+     "More output for foo."
+     he -!-output
+     ---------- Buffer: foo ----------
+
+     m
+          ⇒ #<marker at 34 in foo>
+#+end_example
+- t
+echo area
+#+begin_example
+     (print "Echo Area output" t)
+          ⇒ "Echo Area output"
+     ---------- Echo Area ----------
+     "Echo Area output"
+     ---------- Echo Area ----------
+
+#+end_example
+
+- function
+比如在调试时输出调试信息。
+#+begin_example
+ (print "This is the output" #'external-debugging-output)
+          -| This is the output
+          ⇒ "This is the output"
+#+end_example
+
+** 19.5 Output Functions
+
+
+首先我们有时候会看到这样的问题
+#+begin_example
+     (setq foo (list nil))
+          ⇒ (nil)
+     (setcar foo foo)
+          ⇒ (#0)
+#+end_example
+
+这是因为自己引用自己造成，这如果要打印会死循环，所以emacs检测这种问题，并打印#level
+
+那么有哪些输出函数呢？
+
+Function: print object &optional stream
+
+Function: prin1 object &optional stream
+这是数字1. 不打印回车
+
+Function: princ object &optional stream
+这个函数接受object
+
+Function: terpri &optional stream ensure
+输出一个new line  , 全名为terminite print
+
+* 20 Minibuffers
+minibuffer可以让你获取比 the single numeric prefix argument更复杂的用户输入。
+那些参数虽然可以包含buffer 名、file、command名，但还不够。
+
+minibuffer和echo area 在一个地方，只不过它是用来读取输入的。
+
+
+** read-from-minibuffer
+
+https://www.gnu.org/software/emacs/manual/html_node/elisp/Text-from-Minibuffer.html
+** read-regexp
+** Completion
+https://www.gnu.org/software/emacs/manual/html_node/elisp/Completion.html#Completion
