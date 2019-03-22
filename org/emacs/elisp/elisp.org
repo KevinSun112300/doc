@@ -182,15 +182,188 @@ Function: terpri &optional stream ensure
 输出一个new line  , 全名为terminite print
 
 * 20 Minibuffers
+在学read from minibuffer,前先看command, 大多数问题通过command就可以解决。
+
 minibuffer可以让你获取比 the single numeric prefix argument更复杂的用户输入。
-那些参数虽然可以包含buffer 名、file、command名，但还不够。
+那些参数虽然可以包含buffer 名、file、command名,
+
+
 
 minibuffer和echo area 在一个地方，只不过它是用来读取输入的。
 
+** 20.1 minibuffer
+也是buffer,只不过以‘ *Minibuf-number*’命名，因为名字前边有s空格，所以在buffer-menu中看不到，是隐藏的。
 
-** read-from-minibuffer
+** 20.2 使用mini-buffer读取text string
+一般来说，你不应该在函数体里使用minibuffer input funtion. 而应该在(interactive) special form里完成对参数的获取。
+详见21 Command那一章。
 
-https://www.gnu.org/software/emacs/manual/html_node/elisp/Text-from-Minibuffer.html
-** read-regexp
-** Completion
-https://www.gnu.org/software/emacs/manual/html_node/elisp/Completion.html#Completion
+
+*** read-from-minibuffer
+
+Function: read-from-minibuffer prompt &optional initial keymap read history default inherit-input-method
+
+initial: 这个参数废掉了。给nil就行。
+
+keymap: 是在mini buffer内有效果的key map ,也没什么
+
+read: 如果read这个参数是t 它就是读取lisp对象，否则是读取text文本。
+
+history: 这个参数是要给一个符号或者nil,默认是minibuffer-history，用于记录用户输入的历史。
+deault: 这个参数可以是a string, a list of strings, or nil. 它可以让这strings变量history 列表，通过M-n切换。
+#+begin_src elisp
+(read-from-minibuffer "Foo:" nil nil nil nil '("a" "b"))
+#+end_src
+你执行上面的函数，通过M-n就可以切换到a 和 b;
+
+
+*** read-string
+— Function: read-string prompt &optional initial history default inherit-input-method
+
+只读string, 不读lisp object.
+
+没有keymap参数，它使用的keymap是minibuffer-local-map。
+
+*** read-regexp
+read-regexp prompt &optional defaults history
+
+*** read-minibuffer prompt &optional initial
+这是只读lisp object的。
+
+
+** 20.6 Completion
+ <TAB> (minibuffer-complete)
+
+try-completion 是底层函数。
+
+completing-read 是高级用户接口。
+
+*** 20.6.1 基本basic completing 函数
+这些函数与minibuffer无关，是那些高级函数的基础。
+
+**** Function: try-completion string collection &optional predicate
+
+collection ：叫completion table,它可以是 list of strings or cons cells, an obarray, a hash table, or a completion function.
+
+try-completion函数，将string参数与collection里面每一个string对比。 如果没有匹配返回nil. 如果发现有一个完全的匹配，就返回t.
+否则，返回一个string，collection中所有以string开头的内容相同的最长部分.
+#+begin_src elisp
+  (try-completion
+           "foo"
+           '(("foobar1" 1) ("barfoo" 2) ("foobaz" 3) ("foobar2" 4)))
+               ⇒ "fooba"
+
+ (try-completion "foo" '(("barfoo" 2) ("foo" 3)))
+               ⇒ t
+#+end_src
+
+第一个， foo 没有完全匹配的， 列表中，有以foo 开头，有foobar1 foobaz foobar2 他们最大的相同的部分是fooba.
+
+第二个，有相同的匹配直接返回t.
+
+predicate: 这个函数如果不是nil就得是一个接入一个string函数。
+#+begin_src elisp
+  (defun test (s)
+            (> (length (car s)) 6))
+               ⇒ test
+  (try-completion
+           "foo"
+           '(("foobar1" 1) ("barfoo" 2) ("foobaz" 3) ("foobar2" 4))
+           'test)
+               ⇒ "foobar"
+#+end_src
+返回长度大于6的匹配结果。
+
+**** all-completions
+ Function: all-completions string collection &optional predicate
+
+返回的是一个list,是所有匹配的结果。
+
+*** 20.6.2 Completion and the Minibuffer
+
+**** completing-read
+Function: completing-read prompt collection &optional predicate require-match initial history default inherit-input-method
+
+前面学完了，这些参数虽然多，但大部分看着没有压力了。
+
+require-match： 这个参数是帮助你实现交互的 它可以有以下值
+- nil 随意走
+- t 你必须输入给你的collection里的某个string，才能走
+- confirm 没输入给你的选择也能放你走，但是请您点确认，后果自负
+
+initial: 可以提供一个string作为用户输入的开头。
+
+#+begin_src elisp
+          (completing-read
+           "Complete a foo: "
+           '(("foobar1" 1) ("barfoo" 2) ("foobaz" 3) ("foobar2" 4))
+           nil t "fo")
+#+end_src
+
+
+* 21 command
+** 21.2 Defining Commands
+
+#+begin_src elisp
+(defun myfunction ()
+  "Execute a mvn exec:java goal for current file buffer."
+  (interactive "")
+
+  )
+
+#+end_src
+
+上面是命令定义的一个模板。
+
+interactive是一个special form 。
+
+Special Form: interactive arg-descriptor
+
+arg-descriptor 有以下可能的值：
+- 忽略或者是nil
+- string: 由newlines（\n）分隔的元素。 一个元素a代表一个参数。一个元素有一个character code 和一个可选的promt组成。
+举个例子
+#+begin_src elisp
+ (interactive "P\nbFrobnicate buffer: ")
+#+end_src
+\n有一个，所有有两个元素，第一个，只有一个P,表示Prefix Command Arguments。第二个元素 bFrobnicate buffer: b表示buffer
+- lisp 表达式： 它是一个list,每个元素代表一个参数，通常是通过各种输入函数，比如read-from-minibuffer来获取用户输入。
+#+begin_src elisp
+(defun my-test-fun ()
+  (interactive
+   (list
+    (read-string "Foo: " nil )))
+  )
+
+#+end_src
+
+
+
+** Prefix Command Argument
+定义一个函数测试Prefix
+#+begin_src elisp
+ (defun display-prefix (arg)
+       "Display the value of the raw prefix arg."
+       (interactive "P")
+       (message "%s" arg))
+#+end_src
+#+begin_example
+  M-x display-prefix  -| nil
+
+     C-u     M-x display-prefix  -| (4)
+
+     C-u C-u M-x display-prefix  -| (16)
+
+     C-u 3   M-x display-prefix  -| 3
+
+     M-3     M-x display-prefix  -| 3      ; (Same as C-u 3.)
+
+     C-u -   M-x display-prefix  -| -
+
+     M--     M-x display-prefix  -| -      ; (Same as C-u -.)
+
+     C-u - 7 M-x display-prefix  -| -7
+
+     M-- 7   M-x display-prefix  -| -7     ; (Same as C-u -7.)
+
+#+end_example
