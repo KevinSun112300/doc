@@ -79,6 +79,8 @@ Car "1" o-- "4" 轮胎
 
 
 "has-a" 关系，依赖关系较弱，一个车 ，少一个轮子，也叫车。
+一个List，少一个元素也是List
+
 
 ** 组合(Composition)
 #+begin_src plantuml :file composition.png
@@ -101,6 +103,9 @@ Car "1" o-- "4" 轮胎
 
 
 * Structural Patterns
+记忆方法  FFP ABC
+Facade Flyweight Proxy  Adapter Bridge Composite
+
 ** 适配器模式 Adapter
 将一个类的接口转换成客户希望的另外一个接口。Adapter 模式使得原本由于接口不兼容而不能一起工作的那些类可以一起工作。
   其实现方式主要有两种：
@@ -117,7 +122,7 @@ private final Xpay xpay;
 public XpayToPayDAdapter(Xpay xpay){
 }
 #+end_src
-** Facade模式[fəˈsɑːd]
+** Facade模式[fəˈsɑːd]外观模式
 Facade模式可以用于，封闭复杂子系统， 或者分层系统，
 #+begin_src java
 package com.javacodegeeks.patterns.facadepattern;
@@ -558,7 +563,7 @@ public Form(String firstName,String lastName,String userName,String password,Str
 
 }
 #+end_src
-这就叫telesoping. 这个存在的问题是什么 ， 是client在用这个类的时间，可读性着， client还要清楚每一个参数的意思、顺序、类型，
+这就叫telesoping. 这个存在的问题是什么 ， 是client在用这个类的时间，可读性差， client还要清楚每一个参数的意思、顺序、类型，
 一旦出了问题，最差的情况是顺序错了，但类型一样，编译器没报错，运行起来才出问题。
 
 #+begin_src java
@@ -924,6 +929,14 @@ public class TestBuilderPattern {
 }
 
 #+end_src
+
+构建模式就一句话： 替用户构建对象。
+那和工厂模式有什么区别？
+工厂模式是替用户创建对象提供服务。
+构建模式是为用户构建对象。
+这两种的区别就是，创建的重点在create 也就是new这个动作。
+而build表示的是new这个过程，也就是说工厂模式关心的是如果new一个继承树上的每个对象。
+构建模式关心的是对一个构建过程复杂的对象，如何为用户屏蔽构建这个细节和过程。
 
 ** Factory Method Pattern
 就是定义一个创建对象的接口，然后让子类去实现接口，去选择用使用哪个类去实例化， 工厂模式让类的实例化过程推迟到了子类。
